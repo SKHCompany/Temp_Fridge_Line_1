@@ -22,7 +22,7 @@
 
     client.on('connect', () => {
       console.log('Đã kết nối MQTT WebSocket');
-      client.subscribe("esp32/temperature", function (err) {
+      client.subscribe("esp32/temperatureC", function (err) {
         if (!err) {
           console.log("Subscribed to topic!");
         }
