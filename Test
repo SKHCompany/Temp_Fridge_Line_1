@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MQTT Dashboard</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <h1>Nhiệt độ từ ESP32:</h1>
+  <div id="temp">Đang kết nối...</div>
+
+  <script>
+    const options = {
+      username: "user01",
+      password: "Zxcv1234",
+      connectTimeout: 5000,
+      clean: true,
+      reconnectPeriod: 1000
+    };
+
+    // Thay YOUR_HOST bằng địa chỉ HiveMQ Cloud, ví dụ: xxxx.s2.eu.hivemq.cloud
+    const client = mqtt.connect("6142ecdbd79141889c4aff6297385b1d.s1.eu.hivemq.cloud:8884/mqtt", options);
+
+    client.on('connect', () => {
+      console.log('Đã kết nối MQTT WebSocket');
+      client.subscribe("esp32/temperature", function (err) {
+        if (!err) {
+          console.log("Subscribed to topic!");
+        }
+      });
+    });
+
+    client.on('message', function (topic, message) {
+      document.getElementById("temp").innerText = message.toString() + " °C";
+    });
+
+    client.on('error', function (err) {
+      console.error("MQTT lỗi: ", err);
+    });
+  </script>
+</body>
+</html>
