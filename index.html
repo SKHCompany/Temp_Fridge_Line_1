@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <title>MQTT Dashboard</title>
   <style>
     body {
       margin: 0;
@@ -8,21 +10,21 @@
       font-family: 'Roboto', sans-serif;
       font-size: 35px;
       background-image: url('background.jpg');
-      background-size: cover;         /* Cho ảnh phủ kín toàn bộ */
-      background-repeat: no-repeat;   /* Không lặp lại ảnh */
-      background-position: center;    /* Căn giữa ảnh */
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
     }
 
     .container {
       text-align: center;
-      margin-top: 80px; /* x = 50px */
+      margin-top: 80px;
     }
 
     h1 {
-      margin-bottom: 30px; /* y = 30px */
+      margin-bottom: 30px;
       color: rgb(232, 244, 5);
       font-size: 100px;
-      -webkit-text-stroke: 2px black; /* viền 2px màu đen */
+      -webkit-text-stroke: 2px black;
     }
 
     label {
@@ -30,8 +32,8 @@
       margin-bottom: 10px;
       font-size: 50px;
       font-weight: bolder;
-      color:deeppink;
-      -webkit-text-stroke: 1.5px black; /* viền 2px màu đen */
+      color: deeppink;
+      -webkit-text-stroke: 1.5px black;
     }
 
     input[type="text"] {
@@ -41,8 +43,16 @@
       width: 300px;
       border-radius: 10px;
     }
+
+    #status {
+      display: block;
+      margin-top: 30px;
+      font-size: 40px;
+      font-weight: bold;
+      color: orange;
+      -webkit-text-stroke: 1px black;
+    }
   </style>
-  <title>MQTT Dashboard</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
@@ -51,7 +61,9 @@
 
     <label for="name">Nhiệt độ:</label>
     <input id="temp" type="text" value="Đang kết nối..." readonly>
-</div>
+
+    <span id="status">⏳ Đang kết nối...</span>
+  </div>
 
   <script>
     const options = {
@@ -62,25 +74,51 @@
       reconnectPeriod: 1000
     };
 
-    // Thay YOUR_HOST bằng địa chỉ HiveMQ Cloud, ví dụ: xxxx.s2.eu.hivemq.cloud
     const client = mqtt.connect("wss://6142ecdbd79141889c4aff6297385b1d.s1.eu.hivemq.cloud:8884/mqtt", options);
 
+    let lastMessageTime = Date.now();
+
     client.on('connect', () => {
-      console.log('Đã kết nối MQTT WebSocket');
+      console.log('✅ Đã kết nối MQTT WebSocket');
       client.subscribe("esp32/temperatureC", function (err) {
         if (!err) {
-          console.log("Subscribed to topic!");
+          console.log("✅ Đã subscribe topic");
         }
       });
     });
 
     client.on('message', function (topic, message) {
-      document.getElementById("temp").value = message.toString() + " °C";
+      if (topic === "esp32/temperatureC") {
+        const temp = message.toString();
+        if (temp === "-127.0" || temp === "-127") {
+          document.getElementById("temp").value = "Lỗi cảm biến";
+          document.getElementById("status").innerText = "⚠️ Cảm biến không phản hồi!";
+          document.getElementById("status").style.color = "orange";
+        } else {
+          document.getElementById("temp").value = temp + " °C";
+          document.getElementById("status").innerText = "✅ Đang kết nối";
+          document.getElementById("status").style.color = "lightgreen";
+        }
+
+        // cập nhật thời gian nhận gói cuối
+        lastMessageTime = Date.now();
+        document.getElementById("status").innerText = "✅ Đang kết nối";
+        document.getElementById("status").style.color = "lightgreen";
+      }
     });
 
     client.on('error', function (err) {
-      console.error("MQTT lỗi: ", err);
+      console.error("❌ Lỗi MQTT: ", err);
     });
+
+    // Kiểm tra mất kết nối nếu không nhận dữ liệu trong 10 giây
+    setInterval(() => {
+      const delta = Date.now() - lastMessageTime;
+      if (delta > 10000) {
+        document.getElementById("status").innerText = "❌ Mất kết nối ESP32";
+        document.getElementById("status").style.color = "red";
+      }
+    }, 2000);
   </script>
 </body>
 </html>
