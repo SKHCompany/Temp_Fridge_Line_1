@@ -27,42 +27,62 @@
       -webkit-text-stroke: 2px black;
     }
 
-    label {
-      display: block;
-      margin-bottom: 10px;
+    .row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+    }
+
+    .row label {
       font-size: 50px;
       font-weight: bolder;
       color: deeppink;
       -webkit-text-stroke: 1.5px black;
+      margin-right: 15px;
+      width: 220px; /* cố định label rộng 220px */
+      text-align: right;
     }
 
-    input[type="text"] {
+    .row input[type="text"] {
       text-align: center;
       padding: 10px;
       font-size: 40px;
       width: 300px;
       border-radius: 10px;
+      margin: 0 15px;
     }
 
-    #status {
-      display: block;
-      margin-top: 30px;
+    .row span {
       font-size: 40px;
       font-weight: bold;
       color: orange;
       -webkit-text-stroke: 1px black;
+      margin-left: 15px;
+      width: 420px; /* cố định ô trạng thái rộng 420px */
+      text-align: left;
     }
+
   </style>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>GIÁM SÁT NHIỆT ĐỘ<br>TỦ BẢO QUẢN LINE 1</h1>
+    <h1>GIÁM SÁT NHIỆT ĐỘ<br>TỦ BẢO QUẢN LINE 3</h1>
 
-    <label for="name">Nhiệt độ:</label>
-    <input id="temp" type="text" value="Đang kết nối..." readonly>
+    <!-- Hàng 1: Topic esp32/temperatureC -->
+    <div class="row">
+      <label for="temp1">Nhiệt độ:</label>
+      <input id="temp1" type="text" value="Đang kết nối..." readonly>
+      <span id="status1">⏳ Đang kết nối...</span>
+    </div>
 
-    <span id="status">⏳ Đang kết nối...</span>
+    <!-- Hàng 2: Topic esp32/temperatureC2 -->
+    <div class="row">
+      <label for="temp2">Nhiệt độ:</label>
+      <input id="temp2" type="text" value="Đang kết nối..." readonly>
+      <span id="status2">⏳ Đang kết nối...</span>
+    </div>
   </div>
 
   <script>
@@ -76,34 +96,50 @@
 
     const client = mqtt.connect("wss://6142ecdbd79141889c4aff6297385b1d.s1.eu.hivemq.cloud:8884/mqtt", options);
 
-    let lastMessageTime = Date.now();
+    // Lưu thời gian nhận gói cuối cho từng topic
+    let lastMessageTime1 = Date.now();
+    let lastMessageTime2 = Date.now();
 
     client.on('connect', () => {
       console.log('✅ Đã kết nối MQTT WebSocket');
+
+      // Subscribe cho từng topic
       client.subscribe("esp32/temperatureC", function (err) {
-        if (!err) {
-          console.log("✅ Đã subscribe topic");
-        }
+        if (!err) console.log("✅ Subscribed esp32/temperatureC");
+      });
+
+      client.subscribe("esp32/temperatureC2", function (err) {
+        if (!err) console.log("✅ Subscribed esp32/temperatureC2");
       });
     });
 
     client.on('message', function (topic, message) {
-      if (topic === "esp32/temperatureC") {
-        const temp = message.toString();
-        if (temp === "-127.0" || temp === "-127") {
-          document.getElementById("temp").value = "Lỗi cảm biến";
-          document.getElementById("status").innerText = "⚠️ Cảm biến không phản hồi!";
-          document.getElementById("status").style.color = "orange";
-        } else {
-          document.getElementById("temp").value = temp + " °C";
-          document.getElementById("status").innerText = "✅ Đã kết nối";
-          document.getElementById("status").style.color = "lightgreen";
-        }
+      const temp = message.toString();
 
-        // cập nhật thời gian nhận gói cuối
-        lastMessageTime = Date.now();
-        document.getElementById("status").innerText = "✅ Đã kết nối";
-        document.getElementById("status").style.color = "lightgreen";
+      let displayText, statusText, statusColor;
+
+      if (temp === "-127.0" || temp === "-127") {
+        displayText = "Lỗi cảm biến";
+        statusText = "⚠️ Cảm biến không phản hồi!";
+        statusColor = "orange";
+      } else {
+        displayText = temp + " °C";
+        statusText = "✅ Đã kết nối";
+        statusColor = "lightgreen";
+      }
+
+      if (topic === "esp32/temperatureC") {
+        document.getElementById("temp1").value = displayText;
+        document.getElementById("status1").innerText = statusText;
+        document.getElementById("status1").style.color = statusColor;
+        lastMessageTime1 = Date.now();
+      }
+
+      if (topic === "esp32/temperatureC2") {
+        document.getElementById("temp2").value = displayText;
+        document.getElementById("status2").innerText = statusText;
+        document.getElementById("status2").style.color = statusColor;
+        lastMessageTime2 = Date.now();
       }
     });
 
@@ -111,12 +147,18 @@
       console.error("❌ Lỗi MQTT: ", err);
     });
 
-    // Kiểm tra mất kết nối nếu không nhận dữ liệu trong 10 giây
+    // Kiểm tra mất kết nối cho từng topic
     setInterval(() => {
-      const delta = Date.now() - lastMessageTime;
-      if (delta > 10000) {
-        document.getElementById("status").innerText = "❌ Mất kết nối ESP32";
-        document.getElementById("status").style.color = "red";
+      const now = Date.now();
+
+      if (now - lastMessageTime1 > 10000) {
+        document.getElementById("status1").innerText = "❌ Mất kết nối L1";
+        document.getElementById("status1").style.color = "red";
+      }
+
+      if (now - lastMessageTime2 > 10000) {
+        document.getElementById("status2").innerText = "❌ Mất kết nối L2";
+        document.getElementById("status2").style.color = "red";
       }
     }, 2000);
   </script>
