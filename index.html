@@ -68,18 +68,18 @@
 </head>
 <body>
   <div class="container">
-    <h1>GIÁM SÁT NHIỆT ĐỘ<br>TỦ BẢO QUẢN LINE 3</h1>
+    <h1>GIÁM SÁT NHIỆT ĐỘ<br>TỦ BẢO QUẢN LINE 1 - 3</h1>
 
     <!-- Hàng 1: Topic esp32/temperatureC -->
     <div class="row">
-      <label for="temp1">Nhiệt độ:</label>
+      <label for="temp1">Line 1:</label>
       <input id="temp1" type="text" value="Đang kết nối..." readonly>
       <span id="status1">⏳ Đang kết nối...</span>
     </div>
 
     <!-- Hàng 2: Topic esp32/temperatureC2 -->
     <div class="row">
-      <label for="temp2">Nhiệt độ:</label>
+      <label for="temp2">Line 3:</label>
       <input id="temp2" type="text" value="Đang kết nối..." readonly>
       <span id="status2">⏳ Đang kết nối...</span>
     </div>
@@ -157,7 +157,7 @@
       }
 
       if (now - lastMessageTime2 > 10000) {
-        document.getElementById("status2").innerText = "❌ Mất kết nối L2";
+        document.getElementById("status2").innerText = "❌ Mất kết nối L3";
         document.getElementById("status2").style.color = "red";
       }
     }, 2000);
